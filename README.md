@@ -45,32 +45,11 @@ Sanity check!
 
 ## DNS
 
-Dinghy installs a DNS server listening on the private interface, which
-resolves \*.docker to the Dinghy VM. For instance, if you have a running
-container that exposes port 3000 to the host, and you like to call it
-`myrailsapp`, you can connect to it at `myrailsapp.docker` port 3000, e.g.
-`http://myrailsapp.docker:3000/` or `telnet myrailsapp.docker 3000`.
+Dinghy starts a DNS container via Docker, which resolves \*.docker to the Dinghy VM. This uses the easily-configurable [dnsdock](https://github.com/tonistiigi/dnsdock) container.
 
-## HTTP proxy
+It also sets up a network route on your host machine so that all \*.docker DNS entries get forwarded through to this nameserver.
 
-Dinghy will run a HTTP proxy inside a docker container in
-the VM, giving you easy access to web apps running in other containers.
-This uses the excellent [nginx-proxy](https://github.com/jwilder/nginx-proxy)
-docker tool.
-
-The proxy will take a few moments to download the first time you launch the VM.
-
-Any containers that you want proxied, make sure the `VIRTUAL_HOST`
-environment variable is set, either with the `-e` option to docker or
-the environment hash in docker-compose. For instance setting
-`VIRTUAL_HOST=myrailsapp.docker` will make the container's exposed port
-available at `http://myrailsapp.docker/`. If the container exposes more
-than one port, set `VIRTUAL_PORT` to the http port number, as well.
-
-See the nginx-proxy documentation for further details.
-
-If you use docker-compose, you can add VIRTUAL_HOST to the environment hash in
-`docker-compose.yml`, for instance:
+To set a hostname for a container, just specify the `DNSDOCK_ALIAS` environment variable, either with the -e option to docker or the environment hash in docker-compose. For instance setting DNSDOCK_ALIAS=myrailsapp.docker will make the container's exposed port available at http://myrailsapp.docker/.
 
 ```yaml
 web:
@@ -78,7 +57,7 @@ web:
   ports:
     - "3000:3000"
   environment:
-    VIRTUAL_HOST: myrailsapp.docker
+    DNSDOCK_ALIAS: myrailsapp.docker
 ```
 
 ## a note on NFS sharing
