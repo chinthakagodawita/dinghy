@@ -21,6 +21,9 @@ class Dnsdock
       docker.system("rm", "-fv", CONTAINER_NAME)
     end
     docker.system("run", "-d", "-v", "/var/run/docker.sock:/var/run/docker.sock", "--name", CONTAINER_NAME, "-p", "#{CONTAINER_IP}:53:53/udp", "tonistiigi/dnsdock", '-domain="docker"')
+    unless resolver_configured?
+      configure_resolver!
+    end
   end
 
   def status
