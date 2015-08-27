@@ -25,6 +25,7 @@ class Dnsdock
     unless resolver_configured?
       configure_resolver!
     end
+    route_add!
   end
 
   def halt
@@ -56,7 +57,6 @@ class Dnsdock
       system!("creating #{RESOLVER_FILE}", "sudo", "cp", f.path, RESOLVER_FILE)
       system!("creating #{RESOLVER_FILE}", "sudo", "chmod", "644", RESOLVER_FILE)
     end
-    route_add!
   end
 
   def resolver_configured?
