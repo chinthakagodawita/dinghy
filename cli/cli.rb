@@ -122,6 +122,7 @@ class DinghyCLI < Thor
   desc "halt", "stop the VM and services"
   def halt
     FseventsToVm.new(machine).halt
+    Dnsdock.new(machine).halt
     machine.halt
     Unfs.new(machine).halt
   end
