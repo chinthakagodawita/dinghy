@@ -1,6 +1,6 @@
 require 'formula'
 
-DINGHY_VERSION='4.0.1'
+DINGHY_VERSION='4.0.1-fork.1'
 
 class Dinghy < Formula
   homepage 'https://github.com/codekitchen/dinghy'
@@ -11,7 +11,6 @@ class Dinghy < Formula
   depends_on 'docker'
   depends_on 'docker-machine'
   depends_on 'unfs3'
-  depends_on 'dnsmasq'
 
   def install
     bin.install "bin/dinghy"
