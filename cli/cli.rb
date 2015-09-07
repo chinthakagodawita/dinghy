@@ -6,9 +6,8 @@ $LOAD_PATH << File.dirname(__FILE__)
 require 'dinghy.rb'
 require 'dinghy/check_env'
 require 'dinghy/docker'
-require 'dinghy/dnsmasq'
 require 'dinghy/fsevents_to_vm'
-require 'dinghy/http_proxy'
+require 'dinghy/dnsdock'
 require 'dinghy/preferences'
 require 'dinghy/unfs'
 require 'dinghy/machine'
@@ -55,9 +54,6 @@ class DinghyCLI < Thor
     preferences.update(create: create_options)
   end
 
-  option :proxy,
-    type: :boolean,
-    desc: "start the HTTP proxy as well"
   option :fsevents,
     type: :boolean,
     desc: "start the FS event forwarder"
@@ -100,8 +96,7 @@ class DinghyCLI < Thor
     puts "  VM: #{machine.status}"
     puts " NFS: #{Unfs.new(machine).status}"
     puts "FSEV: #{FseventsToVm.new(machine).status}"
-    puts " DNS: #{Dnsmasq.new(machine).status}"
-    puts "HTTP: #{HttpProxy.new(machine).status}"
+    puts " DNS: #{Dnsdock.new(machine).status}"
   end
 
   desc "ip", "get the VM's IP address"
@@ -114,12 +109,22 @@ class DinghyCLI < Thor
     end
   end
 
+  desc "nameserver", "get the DNS nameserver container's IP"
+  def nameserver_ip
+    if machine.running?
+      puts Dnsdock::CONTAINER_IP
+    else
+      $stderr.puts "The VM is not running, `dinghy up` to start"
+      exit 1
+    end
+  end
+
   desc "halt", "stop the VM and services"
   def halt
     FseventsToVm.new(machine).halt
+    Dnsdock.new(machine).halt
     machine.halt
     Unfs.new(machine).halt
-    Dnsmasq.new(machine).halt
   end
 
   desc "restart", "restart the VM and services"
@@ -141,7 +146,7 @@ class DinghyCLI < Thor
   desc "upgrade", "upgrade the boot2docker VM to the newest available"
   def upgrade
     machine.upgrade
-    # restart to re-enable the http proxy, etc
+    # restart to re-enable the dns container, etc
     restart
   end
 
@@ -162,10 +167,6 @@ class DinghyCLI < Thor
     @preferences ||= Preferences.load
   end
 
-  def proxy_disabled?
-    preferences[:proxy_disabled] == true
-  end
-
   def fsevents_disabled?
     preferences[:fsevents_disabled] == true
   end
@@ -183,18 +184,13 @@ class DinghyCLI < Thor
     if fsevents
       FseventsToVm.new(machine).up
     end
-    Dnsmasq.new(machine).up
-    proxy = options[:proxy] || (options[:proxy].nil? && !proxy_disabled?)
-    if proxy
-      # this is hokey, but it can take a few seconds for docker daemon to be available
-      # TODO: poll in a loop until the docker daemon responds
-      sleep 5
-      HttpProxy.new(machine).up
-    end
+    # this is hokey, but it can take a few seconds for docker daemon to be available
+    # TODO: poll in a loop until the docker daemon responds
+    sleep 5
+    Dnsdock.new(machine).up
     CheckEnv.new(machine).run
 
     preferences.update(
-      proxy_disabled: !proxy,
       fsevents_disabled: !fsevents,
     )
   end
