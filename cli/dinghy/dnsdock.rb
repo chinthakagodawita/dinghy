@@ -85,7 +85,7 @@ class Dnsdock
 
   def flush_dns_cache!
     os_version = `sw_vers -productVersion`.strip!.split('.')
-    if os_version[1] == "10" && os_version[2] && os_version[2].to_i <= 4
+    if os_version[1] == "10" && os_version[2] && os_version[2].to_i < 4
       system!("flushing discoveryutil MDNS cache", "sudo", "discoveryutil", "mdnsflushcache")
     else
       system!("restarting mDNSResponder", "sudo", "killall", "mDNSResponder")
