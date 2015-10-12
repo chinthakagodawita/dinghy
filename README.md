@@ -22,11 +22,15 @@ First the prerequisites:
 
 1. OS X Yosemite (10.10) (Mavericks has a known issue, see [#6](https://github.com/codekitchen/dinghy/issues/6))
 1. [Homebrew](https://github.com/Homebrew/homebrew)
-1. Either [VirtualBox](https://www.virtualbox.org) or [VMware Fusion](http://www.vmware.com/products/fusion). If using VirtualBox, version 5.0+ is strongly recommended.
+1. Either [VirtualBox](https://www.virtualbox.org) or [VMware Fusion](http://www.vmware.com/products/fusion).
+
+If using VirtualBox, version 5.0+ is strongly recommended, and you'll need the
+[VirtualBox Expansion Pack](https://www.virtualbox.org/wiki/Downloads)
+installed.
 
 Then:
 
-    $ brew install --HEAD https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
+    $ brew install https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
 
 This will install the `docker` client and `docker-machine` using Homebrew, as well.
 
@@ -46,6 +50,26 @@ equivalent.
 Sanity check!
 
     $ docker run -it redis
+
+## CLI Usage
+
+```bash
+$ dinghy help
+Commands:
+  dinghy create          # create the docker-machine VM
+  dinghy destroy         # stop and delete all traces of the VM
+  dinghy halt            # stop the VM and services
+  dinghy help [COMMAND]  # Describe available commands or one specific command
+  dinghy ip              # get the VM's IP address
+  dinghy restart         # restart the VM and services
+  dinghy shellinit       # returns env variables to set, should be run like $(dinghy shellinit)
+  dinghy ssh [args...]   # ssh to the VM
+  dinghy ssh-config      # print ssh configuration for the VM
+  dinghy status          # get VM and services status
+  dinghy up              # start the Docker VM and services
+  dinghy upgrade         # upgrade the boot2docker VM to the newest available
+  dinghy version         # display dinghy version
+```
 
 ## DNS
 
@@ -89,7 +113,7 @@ web:
 
 Dinghy shares your home directory (`/Users/<you>`) over NFS, using a
 private network interface between your host machine and the Dinghy
-Vagrant VM. This sharing is done using a separate NFS daemon, not the
+Docker Host. This sharing is done using a separate NFS daemon, not the
 system NFS daemon.
 
 Be aware that there isn't a lot of security around NFSv3 file shares.
@@ -100,7 +124,7 @@ doesn't even listen on other interfaces, for example).
 
 To update Dinghy itself, run:
 
-    $ brew reinstall --HEAD https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
+    $ brew reinstall https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
 
 To update the Docker VM, run:
 

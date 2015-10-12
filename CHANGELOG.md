@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 4.0.3 - 2015-09-29
+
+### Changed
+- Increase SSH error logging.
+
+## 4.0.2 - 2015-09-16
+
+### Changed
+- Fix fsevents_to_vm path on OS X 10.11.
+
 ## 4.0.1 - 2015-09-04
 
 ### Added
