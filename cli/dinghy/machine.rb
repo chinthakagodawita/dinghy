@@ -18,13 +18,15 @@ class Machine
   end
 
   def up
-    out, err = System.capture_output {
-      system("start", machine_name)
-    }
+    unless running?
+      out, err = System.capture_output {
+        system("start", machine_name)
+      }
 
-    if System.command_failed?
-      $stderr.puts err
-      raise("There was an error bringing up the VM. Dinghy cannot continue.")
+      if System.command_failed?
+        $stderr.puts err
+        raise("There was an error bringing up the VM. Dinghy cannot continue.")
+      end
     end
 
     Ssh.new(self).write_ssh_config!
@@ -43,7 +45,8 @@ class Machine
   end
 
   def store_path
-    inspect['StorePath']
+    path = inspect.fetch('HostOptions', {}).fetch('AuthOptions', {})['StorePath']
+    path || inspect['StorePath']
   end
 
   def inspect

@@ -1,6 +1,6 @@
 require 'formula'
 
-DINGHY_VERSION='4.0.3-fork.2'
+DINGHY_VERSION='4.0.6-fork.1'
 
 class Dinghy < Formula
   homepage 'https://github.com/codekitchen/dinghy'
