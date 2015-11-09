@@ -5,7 +5,7 @@ require 'dinghy/machine'
 
 class Dnsdock
   CONTAINER_NAME = "dinghy_dnsdock"
-  CONTAINER_IP = "172.17.42.1"
+  CONTAINER_IP = "172.17.0.1"
   DOCKER_SUBNET = "172.17.0.0/16"
   RESOLVER_DIR = Pathname("/etc/resolver")
   RESOLVER_FILE = RESOLVER_DIR.join("docker")
