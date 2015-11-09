@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 4.0.7 - 2015-11-08
+
+### Changed
+- Revert AuthOptions commit due to docker-machine inconsistency.
+
 ## 4.0.6 - 2015-11-08
 
 ### Changed
