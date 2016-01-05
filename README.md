@@ -27,7 +27,7 @@ First the prerequisites:
 1. Either [VirtualBox](https://www.virtualbox.org) or [VMware Fusion](http://www.vmware.com/products/fusion).
 
 If using VirtualBox, version 5.0+ is strongly recommended, and you'll need the
-[VirtualBox Expansion Pack](https://www.virtualbox.org/wiki/Downloads)
+[VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads)
 installed.
 
 Then:
@@ -126,7 +126,9 @@ doesn't even listen on other interfaces, for example).
 
 To update Dinghy itself, run:
 
+    $ dinghy halt
     $ brew reinstall https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
+    $ dinghy up
 
 To update the Docker VM, run:
 
@@ -138,7 +140,9 @@ This will run `docker-machine upgrade` and then restart the dinghy services.
 
 You can install Dinghy's master branch with:
 
+    $ dinghy halt
     $ brew reinstall --HEAD https://github.com/codekitchen/dinghy/raw/master/dinghy.rb
+    $ dinghy up
 
 This branch may be less stable, so this isn't recommended in general.
 

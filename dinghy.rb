@@ -1,6 +1,6 @@
 require 'formula'
 
-DINGHY_VERSION='4.0.8-fork.1'
+DINGHY_VERSION='4.1.0'
 
 class Dinghy < Formula
   homepage 'https://github.com/codekitchen/dinghy'
@@ -8,8 +8,6 @@ class Dinghy < Formula
   head 'https://github.com/codekitchen/dinghy.git', branch: :master
   version DINGHY_VERSION
 
-  depends_on 'docker'
-  depends_on 'docker-machine'
   depends_on 'unfs3'
 
   def install

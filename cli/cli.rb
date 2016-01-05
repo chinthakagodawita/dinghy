@@ -1,5 +1,7 @@
 $LOAD_PATH << File.dirname(__FILE__)+"/thor/lib"
 require 'thor'
+$LOAD_PATH << File.dirname(__FILE__)+"/daemons/lib"
+require 'daemons'
 
 $LOAD_PATH << File.dirname(__FILE__)
 
@@ -15,6 +17,8 @@ require 'dinghy/machine/create_options'
 require 'dinghy/ssh'
 require 'dinghy/system'
 require 'dinghy/version'
+
+$0 = 'dinghy' # fix our binary name, since we launch via the _dinghy_command wrapper
 
 class DinghyCLI < Thor
   option :memory,
@@ -96,9 +100,21 @@ class DinghyCLI < Thor
   desc "status", "get VM and services status"
   def status
     puts "  VM: #{machine.status}"
-    puts " NFS: #{Unfs.new(machine).status}"
-    puts "FSEV: #{FseventsToVm.new(machine).status}"
-    puts " DNS: #{Dnsdock.new(machine).status}"
+    unfs = Unfs.new(machine)
+    puts " NFS: #{unfs.status}"
+    fsevents = FseventsToVm.new(machine)
+    puts "FSEV: #{fsevents.status}"
+    dns = Dnsdock.new(machine)
+    puts " DNS: #{dns.status}"
+    return unless machine.status == 'running'
+    [unfs, fsevents].each do |daemon|
+      if !daemon.running?
+        puts "\n\e[33m#{daemon.name} failed to run\e[0m"
+        puts "details available in log file: #{daemon.logfile}"
+      end
+    end
+    puts
+    CheckEnv.new(machine).run
   end
 
   desc "ip", "get the VM's IP address"
@@ -125,6 +141,7 @@ class DinghyCLI < Thor
   def halt
     FseventsToVm.new(machine).halt
     Dnsdock.new(machine).halt
+    puts "Stopping the #{machine.name} VM..."
     machine.halt
     Unfs.new(machine).halt
   end
@@ -160,6 +177,25 @@ class DinghyCLI < Thor
     CheckEnv.new(machine).print
   end
 
+  desc "nfs", "start or stop the internal nfs daemon"
+  def nfs(cmd, port)
+    if Process.uid != 0
+      $stderr.puts "nfs command must be run as root"
+      return
+    end
+
+    unfs = Unfs.new(machine)
+    unfs.port = port.to_i
+    case cmd
+    when "start"
+      unfs.up
+    when "stop"
+      unfs.halt
+    else
+      $stderr.puts "unknown nfs subcommand: #{cmd}"
+    end
+  end
+
   map "-v" => :version
   desc "version", "display dinghy version"
   def version
@@ -184,19 +220,22 @@ class DinghyCLI < Thor
     unfs = Unfs.new(machine)
     machine.up
     unfs.up
-    machine.mount(unfs)
-    fsevents = options[:fsevents] || (options[:fsevents].nil? && !fsevents_disabled?)
-    if fsevents
-      FseventsToVm.new(machine).up
+    if unfs.wait_for_unfs
+      machine.mount(unfs)
+    else
+      puts "NFS mounting failed"
     end
-    # this is hokey, but it can take a few seconds for docker daemon to be available
-    # TODO: poll in a loop until the docker daemon responds
-    sleep 5
+    use_fsevents = options[:fsevents] || (options[:fsevents].nil? && !fsevents_disabled?)
+    if use_fsevents
+      fsevents = FseventsToVm.new(machine)
+      fsevents.up
+    end
     Dnsdock.new(machine).up
-    CheckEnv.new(machine).run
 
     preferences.update(
       fsevents_disabled: !fsevents,
     )
+
+    status
   end
 end

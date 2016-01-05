@@ -1,41 +1,56 @@
 require 'timeout'
 require 'socket'
 
-require 'dinghy/plist'
+require 'dinghy/daemon'
 
 class Unfs
-  include RootPlist
+  include Dinghy::Daemon
 
   attr_reader :machine
+  attr_accessor :port
 
   def initialize(machine)
     @machine = machine
+    @port = rand(1000) + 19000
   end
 
+  # We have to jump through some hoops to make this work. unfsd needs to run as
+  # root, even though we're squashing all permissions to the user's uid -- as
+  # far as I can tell, it's just buggy when run as non-root.
+  #
+  # But, we don't want to run dinghy as a whole as root, and we want to avoid
+  # setuid.
+  #
+  # So, we sudo out to the dinghy binary again, and run a special command to
+  # start unfsd in that sudo'd process.
   def up
-    write_exports!
-    super
-    wait_for_unfs
+    if root?
+      super
+    else
+      write_exports!
+      puts starting_message
+      system("sudo", "#{DINGHY}/bin/dinghy", "nfs", "start", port.to_s)
+    end
+  end
+
+  def halt
+    if root?
+      super
+    else
+      system("sudo", "#{DINGHY}/bin/dinghy", "nfs", "stop", "0") # port unused
+    end
   end
 
   def wait_for_unfs
-    Timeout.timeout(20) do
+    Timeout.timeout(10) do
       puts "Waiting for #{name} daemon..."
-      while status != "running"
+      while !daemon_listening?
         sleep 1
       end
     end
-  end
-
-  def status
-    begin
-      Timeout.timeout(1) do
-        TCPSocket.open(machine.host_ip, 19321)
-      end
-      "running"
-    rescue Errno::ECONNREFUSED, Timeout::Error, JSON::ParserError
-      "not running"
-    end
+    true
+  rescue Timeout::Error
+    false
   end
 
   def host_mount_dir
@@ -70,37 +85,34 @@ class Unfs
     HOME_DINGHY+"machine-nfs-exports-#{machine.name}"
   end
 
-  def plist_body
-    <<-XML
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>KeepAlive</key>
-  <true/>
-  <key>Label</key>
-  <string>dinghy.unfs</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>#{BREW}/sbin/unfsd</string>
-    <string>-e</string>
-    <string>#{exports_filename}</string>
-    <string>-n</string>
-    <string>19321</string>
-    <string>-m</string>
-    <string>19321</string>
-    <string>-l</string>
-    <string>#{machine.host_ip}</string>
-    <string>-p</string>
-    <string>-b</string>
-    <string>-d</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>WorkingDirectory</key>
-  <string>#{BREW}</string>
-</dict>
-</plist>
-    XML
+  def starting_message
+    "Starting #{name} daemon, this will require sudo"
+  end
+
+  def stopping_message
+    "Stopping #{name} daemon, this will require sudo"
+  end
+
+  def command
+    [
+      "#{BREW}/sbin/unfsd",
+      "-e", "#{exports_filename}",
+      "-n", port.to_s,
+      "-m", port.to_s,
+      "-l", "#{machine.host_ip}",
+      "-p",
+      "-d"
+    ]
+  end
+
+  def daemon_listening?
+    begin
+      Timeout.timeout(1) do
+        TCPSocket.open(machine.host_ip, port)
+      end
+      true
+    rescue Errno::ECONNREFUSED, Timeout::Error, JSON::ParserError
+      false
+    end
   end
 end
