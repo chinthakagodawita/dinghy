@@ -14,6 +14,10 @@ just become a plugin to `docker-machine`. For now, dinghy runs as a wrapper
 around `docker-machine`, shelling out to create the VM and using `launchd` to
 start the various services such as NFS and DNS.
 
+## FAQ and solutions to common problems
+
+Before filing an issue, see the [FAQ](FAQ.md).
+
 ## upgrading from vagrant
 
 If you previously used a version of Dinghy that ran on top of Vagrant, [read this](UPGRADE_FROM_VAGRANT.md).
@@ -32,9 +36,12 @@ installed.
 
 Then:
 
-    $ brew install https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
+    $ brew tap codekitchen/dinghy
+    $ brew install dinghy
 
-This will install the `docker` client and `docker-machine` using Homebrew, as well.
+You will need to install `docker` and `docker-machine` as well, either via Homebrew or the official Docker package downloads. To install with Homebrew:
+
+    $ brew install docker docker-machine
 
 You can specify provider (virtualbox or vmware), memory and CPU options when creating the VM. See available options:
 
@@ -124,10 +131,16 @@ doesn't even listen on other interfaces, for example).
 
 ## upgrading
 
+If you didn't originally install Dinghy as a tap, you'll need to switch to the
+tap to pull in the latest release:
+
+    $ brew tap codekitchen/dinghy
+
 To update Dinghy itself, run:
 
     $ dinghy halt
-    $ brew reinstall https://github.com/codekitchen/dinghy/raw/latest/dinghy.rb
+    $ brew update
+    $ brew upgrade dinghy
     $ dinghy up
 
 To update the Docker VM, run:
@@ -141,7 +154,7 @@ This will run `docker-machine upgrade` and then restart the dinghy services.
 You can install Dinghy's master branch with:
 
     $ dinghy halt
-    $ brew reinstall --HEAD https://github.com/codekitchen/dinghy/raw/master/dinghy.rb
+    $ brew reinstall --HEAD dinghy
     $ dinghy up
 
 This branch may be less stable, so this isn't recommended in general.
