@@ -34,7 +34,11 @@ class DinghyCLI < Thor
     desc: "size of the virtual disk to create, in MB (default #{DISK_DEFAULT})"
   option :provider,
     aliases: :p,
-    desc: "which docker-machine provider to use, 'virtualbox' or 'vmware'"
+    desc: "which docker-machine provider to use, 'virtualbox', 'vmware', 'xhyve', or 'parallels'"
+  option :boot2docker_url,
+    type: :string,
+    aliases: :u,
+    desc: 'URL of the boot2docker image'
   desc "create", "create the docker-machine VM"
   def create
     if machine.created?
@@ -47,7 +51,7 @@ class DinghyCLI < Thor
     create_options['provider'] = machine.translate_provider(create_options['provider'])
 
     if create_options['provider'].nil?
-      $stderr.puts("Invalid value for required option --provider. Valid values are: 'virtualbox', 'vmware'")
+      $stderr.puts("Invalid value for required option --provider. Valid values are: 'virtualbox', 'vmware', 'xhyve', or 'parallels'")
       exit(1)
     end
 
@@ -62,14 +66,9 @@ class DinghyCLI < Thor
     desc: "start the FS event forwarder"
   desc "up", "start the Docker VM and services"
   def up
+    vm_must_exist!
     if machine.running?
-      puts "#{machine.name} already running, restarting..."
-      halt
-    end
-
-    if !machine.created?
-      $stderr.puts "The VM '#{machine.name}' does not exist in docker-machine."
-      $stderr.puts "Run `dinghy create` to create the VM, `dinghy help create` to see available options."
+      $stderr.puts "The VM '#{machine.name}' is already running."
       exit(1)
     end
 
@@ -81,17 +80,15 @@ class DinghyCLI < Thor
 
   desc "ssh [args...]", "ssh to the VM"
   def ssh(*args)
+    vm_must_exist!
     machine.ssh_exec(*args)
   end
 
   desc "status", "get VM and services status"
   def status
     puts "  VM: #{machine.status}"
-    unfs = Unfs.new(machine)
     puts " NFS: #{unfs.status}"
-    fsevents = FseventsToVm.new(machine)
     puts "FSEV: #{fsevents.status}"
-    dns = Dnsdock.new(machine)
     puts " DNS: #{dns.status}"
     return unless machine.status == 'running'
     [unfs, fsevents].each do |daemon|
@@ -106,6 +103,7 @@ class DinghyCLI < Thor
 
   desc "ip", "get the VM's IP address"
   def ip
+    vm_must_exist!
     if machine.running?
       puts machine.vm_ip
     else
@@ -126,11 +124,12 @@ class DinghyCLI < Thor
 
   desc "halt", "stop the VM and services"
   def halt
-    FseventsToVm.new(machine).halt
-    Dnsdock.new(machine).halt
+    vm_must_exist!
+    fsevents.halt
+    dns.halt
     puts "Stopping the #{machine.name} VM..."
     machine.halt
-    Unfs.new(machine).halt
+    unfs.halt
   end
 
   map "down" => :halt
@@ -154,6 +153,7 @@ class DinghyCLI < Thor
 
   desc "upgrade", "upgrade the boot2docker VM to the newest available"
   def upgrade
+    vm_must_exist!
     machine.upgrade
     # restart to re-enable the dns container, etc
     restart
@@ -161,27 +161,11 @@ class DinghyCLI < Thor
 
   desc "shellinit", "returns env variables to set, should be run like $(dinghy shellinit)"
   def shellinit
+    vm_must_exist!
     CheckEnv.new(machine).print
   end
 
-  desc "nfs", "start or stop the internal nfs daemon"
-  def nfs(cmd, port)
-    if Process.uid != 0
-      $stderr.puts "nfs command must be run as root"
-      return
-    end
-
-    unfs = Unfs.new(machine)
-    unfs.port = port.to_i
-    case cmd
-    when "start"
-      unfs.up
-    when "stop"
-      unfs.halt
-    else
-      $stderr.puts "unknown nfs subcommand: #{cmd}"
-    end
-  end
+  map "env" => :shellinit
 
   map "-v" => :version
   desc "version", "display dinghy version"
@@ -190,6 +174,14 @@ class DinghyCLI < Thor
   end
 
   private
+
+  def vm_must_exist!
+    if !machine.created?
+      $stderr.puts "The VM '#{machine.name}' does not exist in docker-machine."
+      $stderr.puts "Run `dinghy create` to create the VM, `dinghy help create` to see available options."
+      exit(1)
+    end
+  end
 
   def preferences
     @preferences ||= Preferences.load
@@ -200,11 +192,22 @@ class DinghyCLI < Thor
   end
 
   def machine
-    @machine ||= Machine.new
+    @machine ||= Machine.new(preferences[:machine_name])
+  end
+
+  def unfs
+    @unfs ||= Unfs.new(machine)
+  end
+
+  def dns
+    @dns ||= Dnsdock.new(machine, preferences[:dinghy_domain])
+  end
+
+  def fsevents
+    FseventsToVm.new(machine)
   end
 
   def start_services
-    unfs = Unfs.new(machine)
     machine.up
     unfs.up
     if unfs.wait_for_unfs
@@ -214,10 +217,10 @@ class DinghyCLI < Thor
     end
     use_fsevents = options[:fsevents] || (options[:fsevents].nil? && !fsevents_disabled?)
     if use_fsevents
-      fsevents = FseventsToVm.new(machine)
       fsevents.up
     end
-    Dnsdock.new(machine).up
+    sleep 5
+    dns.up
 
     preferences.update(
       fsevents_disabled: !fsevents,

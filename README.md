@@ -26,13 +26,14 @@ If you previously used a version of Dinghy that ran on top of Vagrant, [read thi
 
 First the prerequisites:
 
-1. OS X Yosemite (10.10) (Mavericks has a known issue, see [#6](https://github.com/codekitchen/dinghy/issues/6))
+1. OS X Yosemite (10.10) or higher
 1. [Homebrew](https://github.com/Homebrew/homebrew)
-1. Either [VirtualBox](https://www.virtualbox.org) or [VMware Fusion](http://www.vmware.com/products/fusion).
-
-If using VirtualBox, version 5.0+ is strongly recommended, and you'll need the
-[VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads)
-installed.
+1. Docker and Docker Machine. These can either be installed with Homebrew (`brew install docker docker-machine`), or using a package such as the Docker Toolbox.
+1. A Virtual Machine provider for Docker Machine. Currently supported options are:
+    * [xhyve](http://www.xhyve.org/) installed with [docker-machine-driver-xhyve](https://github.com/zchee/docker-machine-driver-xhyve#install).
+    * [VirtualBox](https://www.virtualbox.org). Version 5.0+ is strongly recommended, and you'll need the [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) installed.
+    * [VMware Fusion](http://www.vmware.com/products/fusion).
+    * [Parallels](https://www.parallels.com/products/desktop/) installed with [docker-machine-parallels](https://github.com/Parallels/docker-machine-parallels).
 
 Then:
 
@@ -43,7 +44,7 @@ You will need to install `docker` and `docker-machine` as well, either via Homeb
 
     $ brew install docker docker-machine
 
-You can specify provider (virtualbox or vmware), memory and CPU options when creating the VM. See available options:
+You can specify provider (`virtualbox`, `vmware`, `xhyve` or `parallels`), memory and CPU options when creating the VM. See available options:
 
     $ dinghy help create
 
@@ -73,7 +74,6 @@ Commands:
   dinghy restart         # restart the VM and services
   dinghy shellinit       # returns env variables to set, should be run like $(dinghy shellinit)
   dinghy ssh [args...]   # ssh to the VM
-  dinghy ssh-config      # print ssh configuration for the VM
   dinghy status          # get VM and services status
   dinghy up              # start the Docker VM and services
   dinghy upgrade         # upgrade the boot2docker VM to the newest available
@@ -90,10 +90,9 @@ container that exposes port 3000 to the host, and you like to call it
 
 ## HTTP proxy
 
-Dinghy will run a HTTP proxy inside a docker container in
-the VM, giving you easy access to web apps running in other containers.
-This uses the excellent [nginx-proxy](https://github.com/jwilder/nginx-proxy)
-docker tool.
+Dinghy will run a HTTP proxy inside a docker container in the VM, giving you
+easy access to web apps running in other containers. This is based heavily on
+the excellent [nginx-proxy](https://github.com/jwilder/nginx-proxy) docker tool.
 
 The proxy will take a few moments to download the first time you launch the VM.
 
@@ -112,10 +111,30 @@ If you use docker-compose, you can add VIRTUAL_HOST to the environment hash in
 ```yaml
 web:
   build: .
-  ports:
-    - "3000:3000"
   environment:
     VIRTUAL_HOST: myrailsapp.docker
+```
+
+## Preferences
+
+Dinghy creates a preferences file under ```HOME/.dinghy/preferences.yml```, which can be used to override default options. This is an example of the default generated preferenes:
+
+```
+:preferences:
+  :proxy_disabled: false
+  :fsevents_disabled: false
+  :create:
+    provider: virtualbox
+```
+
+If you want to override the dinghy machine name (e.g. to change it to 'default' so it can work with Kitematic), it can be changed here. First, destroy your current dinghy VM and then add the following to your preferences.yml file:
+
+```
+:preferences:
+.
+.
+.
+  :machine_name: default
 ```
 
 ## a note on NFS sharing

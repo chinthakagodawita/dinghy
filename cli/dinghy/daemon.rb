@@ -1,7 +1,9 @@
-require 'dinghy/constants'
+require 'fileutils'
+
 require 'daemons'
 
-module Dinghy::Daemon
+module Dinghy
+module Daemon
   def up
     puts starting_message unless root?
     # remove any old logfile sitting around
@@ -19,12 +21,12 @@ module Dinghy::Daemon
   def daemon_group
     @group ||= Daemons::ApplicationGroup.new("dinghy-#{name}", {
       dir_mode: :normal,
-      dir: VAR.to_s,
+      dir: dir.to_s,
     })
   end
 
   def halt
-    puts stopping_message
+    puts stopping_message unless root?
     stop
   rescue Errno::ENOENT
     # daemon wasn't running
@@ -60,6 +62,10 @@ module Dinghy::Daemon
 
   protected
 
+  def dir
+    Dinghy.var
+  end
+
   def start
     daemon.start
   end
@@ -75,4 +81,5 @@ module Dinghy::Daemon
   def root?
     Process.uid == 0
   end
+end
 end

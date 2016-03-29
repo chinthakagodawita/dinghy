@@ -3,6 +3,30 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+- Don't restart on 'up' if already started.
+- Better handling of commands before the VM is created.
+- Decrease the logic in the sudo'd NFS process to avoid issues with various sudoers configurations.
+
+## 4.3.1 - 2016-03-03
+
+### Changed
+- Fix FS Events forwarding to xhyve VMs.
+
+## 4.3.0 - 2016-03-03
+
+### Added
+- Allow specifying the docker-machine machine name in the preferences file. This is primarily to enable using Dinghy with Kitematic.
+- Added xhyve support via https://github.com/zchee/docker-machine-driver-xhyve
+- Added parallels support via https://github.com/Parallels/docker-machine-parallels
+- Allow configuring the resolved domain to something other than `.docker`.
+
+### Changed
+- Start the VM on `upgrade` when necessary.
+- Remove the `dinghy nfs` command from the public CLI, it is only for internal use.
+- Upgrade the HTTP proxy to deal with docker's new networking layer and docker-compose v2 configs.
+- Fix `DINGHY_HOST_MOUNT_DIR` option.
+
 ## 4.2.0 - 2016-01-22
 
 ### Changed

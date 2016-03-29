@@ -3,6 +3,13 @@ require 'json'
 require 'shellwords'
 
 class Machine
+  attr_reader :machine_name
+  alias :name :machine_name
+
+  def initialize(machine_name)
+    @machine_name = machine_name || 'dinghy'
+  end
+
   def create(options = {})
     provider = options['provider']
 
@@ -32,7 +39,11 @@ class Machine
   end
 
   def host_ip
-    vm_ip.sub(%r{\.\d+$}, '.1')
+    if provider == 'parallels'
+      vm_ip.sub(%r{\.\d+$}, '.2')
+    else
+      vm_ip.sub(%r{\.\d+$}, '.1')
+    end
   end
 
   def vm_ip
@@ -40,7 +51,14 @@ class Machine
   end
 
   def ssh_identity_file_path
-    inspect_driver['SSHKeyPath']
+    # HACK: The xhyve driver returns this as a blank string on v0.2.2 so we
+    #       manually build the path ourselves
+    ssh_key_path = inspect_driver["SSHKeyPath"]
+    if ssh_key_path != ""
+      ssh_key_path
+    else
+      "#{store_path}/id_rsa"
+    end
   end
 
   def provider
@@ -79,7 +97,7 @@ class Machine
 
   def mount(unfs)
     puts "Mounting NFS #{unfs.guest_mount_dir}"
-    # Remove the existing vbox/vmware shared folder. Machine now has flags to
+    # Remove the existing vbox/vmware/parallels shared folder. Machine now has flags to
     # skip mounting the share at all, but there's no way to apply the flag to an
     # already-created machine. So we have to continue to do this for older VMs.
     ssh("if [ $(grep -c #{Shellwords.escape('/Users[^/]')} /proc/mounts) -gt 0 ]; then sudo umount /Users || true; fi;")
@@ -101,6 +119,9 @@ class Machine
   end
 
   def upgrade
+    if !running?
+      up
+    end
     system("upgrade", machine_name)
   end
 
@@ -117,17 +138,16 @@ class Machine
     Kernel.system("docker-machine", *cmd)
   end
 
-  def machine_name
-    'dinghy'
-  end
-  alias :name :machine_name
-
   def translate_provider(name)
     case name
     when "virtualbox"
       "virtualbox"
     when "vmware", "vmware_fusion", "vmwarefusion", "vmware_desktop"
       "vmwarefusion"
+    when "xhyve"
+      "xhyve"
+    when "parallels", "parallels-desktop"
+      "parallels"
     else
       nil
     end

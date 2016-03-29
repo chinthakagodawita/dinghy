@@ -8,12 +8,17 @@ class Dnsdock
   CONTAINER_IP = "172.17.0.1"
   DOCKER_SUBNET = "172.17.0.0/16"
   RESOLVER_DIR = Pathname("/etc/resolver")
-  RESOLVER_FILE = RESOLVER_DIR.join("docker")
 
-  attr_reader :machine
+  attr_reader :machine, :resolver_file, :dinghy_domain
 
-  def initialize(machine)
+  def initialize(machine, dinghy_domain)
     @machine = machine
+    self.dinghy_domain = dinghy_domain || "docker"
+  end
+
+  def dinghy_domain=(dinghy_domain)
+    @dinghy_domain = dinghy_domain
+    @resolver_file = RESOLVER_DIR.join(@dinghy_domain)
   end
 
   def up
@@ -21,7 +26,12 @@ class Dnsdock
     System.capture_output do
       docker.system("rm", "-fv", CONTAINER_NAME)
     end
-    docker.system("run", "-d", "-v", "/var/run/docker.sock:/var/run/docker.sock", "--name", CONTAINER_NAME, "-p", "#{CONTAINER_IP}:53:53/udp", "tonistiigi/dnsdock", '-domain="docker"')
+    docker.system("run", "-d",
+      "-v", "/var/run/docker.sock:/var/run/docker.sock",
+      "--name", CONTAINER_NAME,
+      "-p", "#{CONTAINER_IP}:53:53/udp",
+      "tonistiigi/dnsdock",
+      "-domain=\".#{@dinghy_domain}\"")
     unless resolver_configured?
       configure_resolver!
     end
@@ -33,7 +43,7 @@ class Dnsdock
   end
 
   def status
-    return "not running" if !machine.running?
+    return "stopped" if !machine.running?
 
     output, _ = System.capture_output do
       docker.system("inspect", "-f", "{{ .State.Running }}", CONTAINER_NAME)
@@ -42,7 +52,7 @@ class Dnsdock
     if output.strip == "true"
       "running"
     else
-      "not running"
+      "stopped"
     end
   end
 
@@ -54,13 +64,13 @@ class Dnsdock
     Tempfile.open('dinghy-dnsdock') do |f|
       f.write(resolver_contents)
       f.close
-      system!("creating #{RESOLVER_FILE}", "sudo", "cp", f.path, RESOLVER_FILE)
-      system!("creating #{RESOLVER_FILE}", "sudo", "chmod", "644", RESOLVER_FILE)
+      system!("creating #{@resolver_file}", "sudo", "cp", f.path, @resolver_file)
+      system!("creating #{@resolver_file}", "sudo", "chmod", "644", @resolver_file)
     end
   end
 
   def resolver_configured?
-    RESOLVER_FILE.exist? && File.read(RESOLVER_FILE) == resolver_contents
+    @resolver_file.exist? && File.read(@resolver_file) == resolver_contents
   end
 
   def resolver_contents; <<-EOS.gsub(/^    /, '')
