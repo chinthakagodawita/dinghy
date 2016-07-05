@@ -91,29 +91,20 @@ container that exposes port 3000 to the host, and you like to call it
 ## HTTP proxy
 
 Dinghy will run a HTTP proxy inside a docker container in the VM, giving you
-easy access to web apps running in other containers. This is based heavily on
-the excellent [nginx-proxy](https://github.com/jwilder/nginx-proxy) docker tool.
+easy access to web apps running in other containers.
 
-The proxy will take a few moments to download the first time you launch the VM.
+For docker-compose projects, hostnames will be automatically generated based on
+the project and service names. For instance, a "web" service in a "myapp"
+docker-compose project will be automatically made available at
+http://web.myapp.docker
 
-Any containers that you want proxied, make sure the `VIRTUAL_HOST`
-environment variable is set, either with the `-e` option to docker or
-the environment hash in docker-compose. For instance setting
-`VIRTUAL_HOST=myrailsapp.docker` will make the container's exposed port
-available at `http://myrailsapp.docker/`. If the container exposes more
-than one port, set `VIRTUAL_PORT` to the http port number, as well.
+Hostnames can also be manually defined, by setting the `VIRTUAL_HOST`
+environment variable on a container.
 
-See the nginx-proxy documentation for further details.
+See the [dinghy-http-proxy documentation](https://github.com/codekitchen/dinghy-http-proxy#dinghy-http-proxy)
+for more details on how to configure and use the proxy.
 
-If you use docker-compose, you can add VIRTUAL_HOST to the environment hash in
-`docker-compose.yml`, for instance:
-
-```yaml
-web:
-  build: .
-  environment:
-    VIRTUAL_HOST: myrailsapp.docker
-```
+The proxy has basic SSL support as well, see the documentation for details.
 
 ## Preferences
 

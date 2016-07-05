@@ -3,6 +3,32 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 4.4.1 - 2016-06-28
+
+### Changed
+- Fix NFS daemon `logpath` error.
+
+### Added
+- Added default vhost splash screen to the HTTP proxy.
+
+## 4.4.0 - 2016-05-20
+
+### Changed
+- Updated jwilder/nginx-proxy base image.
+- Use the new dinghy-http-proxy that contains the DNS resolver.
+- Set VirtualBox DNS options on each start, rather than once at VM create.
+- Support [`HTTPS_METHOD`](https://github.com/jwilder/nginx-proxy/pull/298) env var for the proxy.
+- SSH key fix in fsevents_to_vm.
+- Wildcard the auto-generated docker-compose proxy hostnames.
+
+### Removed
+- Remove the host dnsmasq proxy, as it now runs in Docker.
+
+## 4.3.2 - 2016-03-29
+
+### Added
+- Basic HTTPS support in the proxy, using manually-installed certs.
+
 ### Changed
 - Don't restart on 'up' if already started.
 - Better handling of commands before the VM is created.
