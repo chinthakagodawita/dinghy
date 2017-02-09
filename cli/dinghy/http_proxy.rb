@@ -5,7 +5,7 @@ require 'dinghy/constants'
 
 class HttpProxy
   CONTAINER_NAME = "dinghy_http_proxy"
-  IMAGE_NAME = "codekitchen/dinghy-http-proxy:2.5.0"
+  IMAGE_NAME = "codekitchen/dinghy-http-proxy:2.5"
   RESOLVER_DIR = Pathname("/etc/resolver")
 
   attr_reader :machine, :resolver_file, :dinghy_domain
@@ -28,9 +28,13 @@ class HttpProxy
     puts "Starting DNS#{' and HTTP proxy' if expose_proxy}"
     unless resolver_configured?
       configure_resolver!
+      # Another hokey workaround -- DNS can take a few seconds to stabilize
+      # after we've added the new resolver.
+      sleep 5
     end
     System.capture_output do
-      docker.system("rm", "-fv", CONTAINER_NAME)
+      docker.system("stop", CONTAINER_NAME)
+      docker.system("rm", "-v", CONTAINER_NAME)
     end
     docker.system("run", "-d",
       *run_args(expose_proxy),
@@ -45,6 +49,21 @@ class HttpProxy
     end
 
     if output.strip == "true"
+      "running"
+    else
+      "stopped"
+    end
+  end
+
+  def http_status
+    overall_status = status
+    return overall_status unless overall_status == "running"
+
+    output, _ = System.capture_output do
+      docker.system("inspect", "-f", '{{ index .HostConfig.PortBindings "80/tcp" }}', CONTAINER_NAME)
+    end
+
+    if output =~ /HostPort/
       "running"
     else
       "stopped"
@@ -86,11 +105,18 @@ class HttpProxy
       "-e", "CONTAINER_NAME=#{CONTAINER_NAME}",
       "-e", "DOMAIN_TLD=#{dinghy_domain}",
       "-e", "DNS_IP=#{machine.vm_ip}",
+      "-e", "HOSTMACHINE_IP=#{machine.host_ip}",
     ]
     if expose_proxy
       args += [
         "-p", "80:80",
         "-p", "443:443",
+      ]
+    end
+    custom_config_file = "#{Dinghy.home_dinghy}/proxy.conf"
+    if File.file?(custom_config_file)
+      args += [
+        "-v",  "#{custom_config_file}:/etc/nginx/conf.d/custom.conf",
       ]
     end
     args

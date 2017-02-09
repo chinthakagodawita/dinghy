@@ -3,6 +3,33 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 4.5.0 - 2017-02-06
+
+### Added
+- Custom nginx proxy config support.
+
+### Changed
+- Track minor version for HTTP proxy, rather than patchlevel version. Now small changes can be made to the proxy without a new version of Dinghy.
+- Fix `dinghy create` for Docker 1.13 compatibility.
+- Proxy: leave docker networks when there are no active containers in the network, to make destroying the network easier.
+
+## 4.4.3 - 2016-12-15
+
+### Changed
+- More improved/consistent error handling.
+- Work around MacOS DNS resolution failing briefly after configuring the `.docker` domain.
+- Stop the DNS/HTTP proxy more gracefully.
+
+## 4.4.2 - 2016-10-24
+
+### Added
+- Add `hostmachine.docker` DNS address pointing to the host OS X machine for use in containers.
+
+### Changed
+- Show DNS and Proxy status separately.
+- Slightly improved error handling.
+- Proxy updates.
+
 ## 4.4.1 - 2016-06-28
 
 ### Changed

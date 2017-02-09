@@ -88,6 +88,11 @@ container that exposes port 3000 to the host, and you like to call it
 `myrailsapp`, you can connect to it at `myrailsapp.docker` port 3000, e.g.
 `http://myrailsapp.docker:3000/` or `telnet myrailsapp.docker 3000`.
 
+You can also connect back to your host OS X machine from within a docker
+container using the hostname `hostmachine.docker`. This connects to the virtual
+network interface, so any services running on the host machine that you want
+reachable from docker will have to be listening on this interface.
+
 ## HTTP proxy
 
 Dinghy will run a HTTP proxy inside a docker container in the VM, giving you
@@ -101,14 +106,18 @@ http://web.myapp.docker
 Hostnames can also be manually defined, by setting the `VIRTUAL_HOST`
 environment variable on a container.
 
-See the [dinghy-http-proxy documentation](https://github.com/codekitchen/dinghy-http-proxy#dinghy-http-proxy)
-for more details on how to configure and use the proxy.
+The proxy has basic SSL support as well.
 
-The proxy has basic SSL support as well, see the documentation for details.
+See the [dinghy-http-proxy documentation](https://github.com/codekitchen/dinghy-http-proxy#dinghy-http-proxy)
+for more details on how to configure and use the proxy. 
+
+Advanced proxy configuration can be placed in a file at ```HOME/.dinghy/proxy.conf```. Details can be found in jwilder's [nginx-proxy](https://github.com/jwilder/nginx-proxy#custom-nginx-configuration) project.
+
+
 
 ## Preferences
 
-Dinghy creates a preferences file under ```HOME/.dinghy/preferences.yml```, which can be used to override default options. This is an example of the default generated preferenes:
+Dinghy creates a preferences file under ```HOME/.dinghy/preferences.yml```, which can be used to override default options. This is an example of the default generated preferences:
 
 ```
 :preferences:
@@ -118,7 +127,7 @@ Dinghy creates a preferences file under ```HOME/.dinghy/preferences.yml```, whic
     provider: virtualbox
 ```
 
-If you want to override the dinghy machine name (e.g. to change it to 'default' so it can work with Kitematic), it can be changed here. First, destroy your current dinghy VM and then add the following to your preferences.yml file:
+If you want to override the Dinghy machine name (e.g. to change it to 'default' so it can work with Kitematic), it can be changed here. First, destroy your current dinghy VM and then add the following to your preferences.yml file:
 
 ```
 :preferences:
@@ -128,7 +137,17 @@ If you want to override the dinghy machine name (e.g. to change it to 'default' 
   :machine_name: default
 ```
 
-## a note on NFS sharing
+Same goes for the default Dinghy dns resolver '\*.docker' it can be changed to '\*.dev' for example:
+
+```
+:preferences:
+.
+.
+.
+  :dinghy_domain: dev
+```
+
+## A note on NFS sharing
 
 Dinghy shares your home directory (`/Users/<you>`) over NFS, using a
 private network interface between your host machine and the Dinghy
@@ -139,7 +158,20 @@ Be aware that there isn't a lot of security around NFSv3 file shares.
 We've tried to lock things down as much as possible (this NFS daemon
 doesn't even listen on other interfaces, for example).
 
-## upgrading
+### Custom NFS Mount Location
+
+You can change the shared folder by setting the `DINGHY_HOST_MOUNT_DIR` and `DINGHY_GUEST_MOUNT_DIR` environment variables before starting the dinghy VM. Usually you'll want to set both vars to the same value. For instance if you want to share `/code/projects` over NFS rather than `/Users/<you>`, in bash:
+
+```bash
+$ dinghy halt
+$ export DINGHY_HOST_MOUNT_DIR=/code/projects
+$ export DINGHY_GUEST_MOUNT_DIR=/code/projects
+$ dinghy up
+```
+
+There is an open issue for persisting this in the `~/.dinghy/preferences.yml` file, and allowing multiple dirs to be exported: https://github.com/codekitchen/dinghy/issues/169
+
+## Upgrading
 
 If you didn't originally install Dinghy as a tap, you'll need to switch to the
 tap to pull in the latest release:
@@ -149,7 +181,6 @@ tap to pull in the latest release:
 To update Dinghy itself, run:
 
     $ dinghy halt
-    $ brew update
     $ brew upgrade dinghy
     $ dinghy up
 
@@ -159,7 +190,7 @@ To update the Docker VM, run:
 
 This will run `docker-machine upgrade` and then restart the dinghy services.
 
-### prereleases
+### Prereleases
 
 You can install Dinghy's master branch with:
 
@@ -169,7 +200,7 @@ You can install Dinghy's master branch with:
 
 This branch may be less stable, so this isn't recommended in general.
 
-## built on
+## Built on
 
  - https://github.com/docker/machine
  - https://github.com/markusn/unfs3

@@ -1,4 +1,25 @@
 module System
+  class Failure < ::RuntimeError
+  end
+
+  def self.system_print(*args)
+    Kernel.system(*args)
+    if self.command_failed?
+      raise(Failure, "Failure calling `#{args.join(' ')}`")
+    end
+  end
+
+  def self.system(*args)
+    out, err = self.capture_output {
+      Kernel.system(*args)
+    }
+    if self.command_failed?
+      $stderr.puts err
+      raise(Failure, "Failure calling `#{args.join(' ')}`")
+    end
+    out
+  end
+
   def self.capture_output
     prev_stdout = $stdout.dup
     prev_stderr = $stderr.dup

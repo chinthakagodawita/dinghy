@@ -13,14 +13,7 @@ class Machine
   def create(options = {})
     provider = options['provider']
 
-    out, err = System.capture_output {
-      system("create", "-d", provider, *CreateOptions.generate(provider, options), machine_name)
-    }
-
-    if System.command_failed?
-      $stderr.puts err
-      raise("There was an error creating the VM.")
-    end
+    system_print("create", "-d", provider, *CreateOptions.generate(provider, options), machine_name)
 
     configure_machine(provider)
   end
@@ -29,14 +22,7 @@ class Machine
     unless running?
       configure_machine(provider)
 
-      out, err = System.capture_output {
-        system("start", machine_name)
-      }
-
-      if System.command_failed?
-        $stderr.puts err
-        raise("There was an error bringing up the VM. Dinghy cannot continue.")
-      end
+      system("start", machine_name)
     end
   end
 
@@ -77,7 +63,7 @@ class Machine
   end
 
   def inspect
-    JSON.parse(`docker-machine inspect #{machine_name} 2>/dev/null`)
+    JSON.parse(system('inspect', machine_name))
   end
 
   def inspect_driver
@@ -109,7 +95,7 @@ class Machine
   end
 
   def ssh(*command)
-    system("ssh", machine_name, *command) || raise("ssh command failed")
+    system("ssh", machine_name, *command)
   end
 
   def ssh_exec(*command)
@@ -117,18 +103,18 @@ class Machine
   end
 
   def halt
-    system("stop", machine_name)
+    system("stop", machine_name) if running?
   end
 
   def upgrade
     if !running?
       up
     end
-    system("upgrade", machine_name)
+    system_print("upgrade", machine_name)
   end
 
   def destroy(options = {})
-    system(*["rm", (options[:force] ? '--force' : nil), machine_name].compact)
+    system_print(*["rm", (options[:force] ? '--force' : nil), machine_name].compact)
   end
 
   def created?
@@ -137,7 +123,11 @@ class Machine
   end
 
   def system(*cmd)
-    Kernel.system("docker-machine", *cmd)
+    System.system('docker-machine', *cmd)
+  end
+
+  def system_print(*cmd)
+    System.system_print('docker-machine', *cmd)
   end
 
   def translate_provider(name)
@@ -161,11 +151,7 @@ class Machine
     if provider == "virtualbox"
       halt if running?
       # force host DNS resolving, so that *.docker resolves inside containers
-      Kernel.system("VBoxManage", "modifyvm", machine_name, "--natdnshostresolver1", "on")
-
-      if System.command_failed?
-        raise("There was an error configuring the VM.")
-      end
+      System.system("VBoxManage", "modifyvm", machine_name, "--natdnshostresolver1", "on")
     end
   end
 end
