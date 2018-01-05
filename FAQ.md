@@ -9,6 +9,7 @@
   - [I can't connect to an app running in docker from another VM (commonly to test in IE)](#i-cant-connect-to-an-app-running-in-docker-from-another-vm-commonly-to-test-in-ie)
   - [I want to make my containers reachable from other machines on my LAN](#i-want-to-make-my-containers-reachable-from-other-machines-on-my-lan)
   - [DNS SRV/MX record lookups fail when using VirtualBox](#dns-srvmx-record-lookups-fail-when-using-virtualbox)
+  - [How can I run X11 apps in Docker and have them display on my Mac?](#how-can-i-run-x11-apps-in-docker-and-have-them-display-on-my-mac)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -91,6 +92,22 @@ a tool such as [my-proxy](https://github.com/esnunes/my-proxy) to set up a proxy
 server. Please be aware of the security implications of exposing your containers
 in this way, and don't do it on an untrusted network.
 
+Alternatively, you can use [stone](http://www.gcd.org/sengoku/stone/) (can be installed with `brew`), which will make a proxy to all exposed Docker ports
+on Dinghy's IP from localhost:
+
+```bash
+stone `docker ps -q | grep -v $(docker ps -q --filter='name=dinghy_http_proxy') | xargs -L 1 docker port | grep -o "[0-9]\+$" | tr '\n' ' ' | sed -e "s/\([0-9]\{1,\}\)/$(dinghy ip):\1 \1 --/g"`
+```
+
+The command can be defined as a bash function in **~/.bash_profile** for quick usage:
+
+```bash
+function dinghy-expose {
+    binds=`docker ps -q | grep -v $(docker ps -q --filter='name=dinghy_http_proxy') | xargs -L 1 docker port | grep -o "[0-9]\+$" | tr '\n' ' ' | sed -e "s/\([0-9]\{1,\}\)/$(dinghy ip):\1 \1 --/g"`
+    eval stone $binds
+}
+```
+
 ## DNS SRV/MX record lookups fail when using VirtualBox
 
 This is an issue with VirtualBox DNS serving, see https://github.com/codekitchen/dinghy/issues/172
@@ -98,3 +115,20 @@ This is an issue with VirtualBox DNS serving, see https://github.com/codekitchen
 There is a workaround there, turning on `natdnsproxy1` for the VM, but
 unfortunately this breaks resolving of `*.docker` domains from within the VM. So
 there is no known VirtualBox configuration that fixes all problems.
+
+## How can I run X11 apps in Docker and have them display on my Mac?
+
+1. If you haven't already, install the latest version of [XQuartz](https://www.xquartz.org). Reboot your Mac. Logging out and back in is not sufficient.
+1. Launch XQuartz, open Preferences->Security, and enable "Allow connections from network clients". This only needs to be done once.
+1. On each launch of XQuartz, you will need to enable connections from the Dinghy VM IP address with `xhost + $(dinghy ip)`
+1. Then you can just launch a Docker container setting `-e DISPLAY=$(dinghy ip --host):0` and any X11 applications run in the container should display on the host.
+
+For instance, here is how to run firefox:
+
+```bash
+$ open -a XQuartz
+$ xhost + $(dinghy ip)
+$ docker run --rm -e DISPLAY=$(dinghy ip --host):0 jess/firefox
+``` 
+
+Please make sure you understand the risks of allowing X11 applications to run. Do not run untrusted X11 containers.

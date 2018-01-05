@@ -28,9 +28,17 @@ class CheckEnv
       "DOCKER_MACHINE_NAME" => machine.name,
     }
   end
+  
+  def is_fish_shell?
+    return ENV.key?('FISH_VERSION')
+  end
 
   def print
-    expected.each { |name,value| puts "    export #{name}=#{value}" }
+    if is_fish_shell? then
+      expected.each { |name,value| puts %{    set -gx #{name} "#{value}";} }
+    else
+      expected.each { |name,value| puts "    export #{name}=#{value}" }
+    end
   end
 
   def set?

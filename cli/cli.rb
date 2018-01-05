@@ -61,9 +61,15 @@ class DinghyCLI < Thor
     preferences.update(create: create_options)
   end
 
+  option :dns,
+    type: :boolean,
+    desc: "start the DNS server"
   option :fsevents,
     type: :boolean,
     desc: "start the FS event forwarder"
+  option :unfs,
+    type: :boolean,
+    desc: "start the NFS (unfsd) server"
   desc "up", "start the Docker VM and services"
   def up
     vm_must_exist!
@@ -86,12 +92,27 @@ class DinghyCLI < Thor
 
   desc "status", "get VM and services status"
   def status
-    puts "  VM: #{machine.status}"
-    puts " NFS: #{unfs.status}"
-    puts "FSEV: #{fsevents.status}"
-    puts " DNS: #{dns.status}"
+    puts "   VM: #{machine.status}"
+    daemons_enabled = []
+    if (!unfs_disabled?)
+      puts "  NFS: #{unfs.status}"
+      daemons_enabled << unfs
+    else
+      puts "  NFS: disabled"
+    end
+    if (!fsevents_disabled?)
+      puts " FSEV: #{fsevents.status}"
+      daemons_enabled << fsevents
+    else
+      puts " FSEV: disabled"
+    end
+    if (!dns_disabled?)
+      puts "  DNS: #{dns.status}"
+    else
+      puts "  DNS: disabled"
+    end
     return unless machine.status == 'running'
-    [unfs, fsevents].each do |daemon|
+    daemons_enabled.each do |daemon|
       if !daemon.running?
         puts "\n\e[33m#{daemon.name} failed to run\e[0m"
         puts "details available in log file: #{daemon.logfile}"
@@ -101,11 +122,14 @@ class DinghyCLI < Thor
     CheckEnv.new(machine).run
   end
 
+  option :host,
+    type: :boolean,
+    desc: "output the host IP on the VM interface, rather than the VM IP"
   desc "ip", "get the VM's IP address"
   def ip
     vm_must_exist!
     if machine.running?
-      puts machine.vm_ip
+      puts(options[:host] ? machine.host_ip : machine.vm_ip)
     else
       $stderr.puts "The VM is not running, `dinghy up` to start"
       exit 1
@@ -129,7 +153,9 @@ class DinghyCLI < Thor
     dns.halt
     puts "Stopping the #{machine.name} VM..."
     machine.halt
-    unfs.halt
+    if (!unfs_disabled?)
+      unfs.halt
+    end
   end
 
   map "down" => :halt
@@ -187,8 +213,20 @@ class DinghyCLI < Thor
     @preferences ||= Preferences.load
   end
 
+  def dns_disabled?
+    preferences[:dns_disabled] == true
+  end
+
   def fsevents_disabled?
     preferences[:fsevents_disabled] == true
+  end
+
+  def unfs_disabled?
+    preferences[:unfs_disabled] == true
+  end
+
+  def nfs_port
+    (preferences[:nfs_port] || 19091).to_i
   end
 
   def machine
@@ -196,7 +234,7 @@ class DinghyCLI < Thor
   end
 
   def unfs
-    @unfs ||= Unfs.new(machine)
+    @unfs ||= Unfs.new(machine, nfs_port)
   end
 
   def dns
@@ -204,26 +242,36 @@ class DinghyCLI < Thor
   end
 
   def fsevents
-    FseventsToVm.new(machine)
+    FseventsToVmRunner.new(machine)
   end
 
   def start_services
     machine.up
-    unfs.up(preferences[:custom_nfs_export_options])
-    if unfs.wait_for_unfs
-      machine.mount(unfs)
-    else
-      puts "NFS mounting failed"
+    use_unfs = options[:unfs] || (options[:unfs].nil? && !unfs_disabled?)
+    if use_unfs
+      unfs.up(preferences[:custom_nfs_export_options])
+      if unfs.wait_for_unfs
+        machine.mount(unfs)
+      else
+        puts "NFS mounting failed"
+      end
     end
     use_fsevents = options[:fsevents] || (options[:fsevents].nil? && !fsevents_disabled?)
     if use_fsevents
       fsevents.up
     end
+    dns = options[:dns] || (options[:dns].nil? && !dns_disabled?)
+    # this is hokey, but it can take a few seconds for docker daemon to be available
+    # TODO: poll in a loop until the docker daemon responds
     sleep 5
-    dns.up
+    if dns
+      dns.up
+    end
 
     preferences.update(
-      fsevents_disabled: !fsevents,
+      unfs_disabled: !use_unfs,
+      dns_disabled: !dns,
+      fsevents_disabled: !use_fsevents,
     )
 
     status

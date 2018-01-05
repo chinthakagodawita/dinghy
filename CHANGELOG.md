@@ -3,6 +3,28 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- `nfs_port` preference to define a different NFS port to use on the VM net interface.
+
+### Changed
+- Remove random port selection for unfsd and use hard-coded port number.
+- Extended error handling for `fsevents_to_vm` SSH errors.
+
+## 4.6.1 - 2017-12-08
+
+### Changed
+- Fix fish shell support for setting env vars.
+- Fix `proxy_disabled` logic.
+
+## 4.6.0 - 2017-11-17
+
+### Added
+- Display Fish syntax for setting env variables.
+- `dinghy ip --host` option to output host IP.
+
+### Changed
+- Use submodules for fsevents_to_vm rather than a `gem install`.
+
 ## 4.5.0 - 2017-02-06
 
 ### Added
