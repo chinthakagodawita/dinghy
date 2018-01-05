@@ -30,7 +30,7 @@ class Dnsdock
       "-v", "/var/run/docker.sock:/var/run/docker.sock",
       "--name", CONTAINER_NAME,
       "-p", "#{CONTAINER_IP}:53:53/udp",
-      "tonistiigi/dnsdock",
+      "aacebedo/dnsdock",
       "-domain=\".#{@dinghy_domain}\"")
     unless resolver_configured?
       configure_resolver!
