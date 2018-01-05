@@ -260,17 +260,17 @@ class DinghyCLI < Thor
     if use_fsevents
       fsevents.up
     end
-    dns = options[:dns] || (options[:dns].nil? && !dns_disabled?)
+    use_dns = options[:dns] || (options[:dns].nil? && !dns_disabled?)
     # this is hokey, but it can take a few seconds for docker daemon to be available
     # TODO: poll in a loop until the docker daemon responds
     sleep 5
-    if dns
+    if use_dns
       dns.up
     end
 
     preferences.update(
       unfs_disabled: !use_unfs,
-      dns_disabled: !dns,
+      dns_disabled: !use_dns,
       fsevents_disabled: !use_fsevents,
     )
 
