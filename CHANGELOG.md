@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 4.6.4 - 2018-06-05
+
+### Added
+- Coerce Thor to support `-h` and `--help` flags for individual commands.
+- Support for passing through docker-machine's `--engine-opt` flag.
+- Support for nanosecond timestamps in `fsevents_to_vm` to match High Sierra's nanosecond timestamps. Requires a dev branch of `unfs3` as well, which the Homebrew installer now points to.
+
+## 4.6.3 - 2018-01-26
+
 ### Added
 - `nfs_port` preference to define a different NFS port to use on the VM net interface.
 

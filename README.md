@@ -31,7 +31,7 @@ First the prerequisites:
 1. Docker and Docker Machine. These can either be installed with Homebrew (`brew install docker docker-machine`), or using a package such as the Docker Toolbox.
 1. A Virtual Machine provider for Docker Machine. Currently supported options are:
     * [xhyve](http://www.xhyve.org/) installed with [docker-machine-driver-xhyve](https://github.com/zchee/docker-machine-driver-xhyve#install).
-    * [VirtualBox](https://www.virtualbox.org). Version 5.0+ is strongly recommended, and you'll need the [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) installed.
+    * [VirtualBox](https://www.virtualbox.org). Version 5.0+ is strongly recommended.
     * [VMware Fusion](http://www.vmware.com/products/fusion).
     * [Parallels](https://www.parallels.com/products/desktop/) installed with [docker-machine-parallels](https://github.com/Parallels/docker-machine-parallels).
 
@@ -181,7 +181,7 @@ tap to pull in the latest release:
 To update Dinghy itself, run:
 
     $ dinghy halt
-    $ brew upgrade dinghy
+    $ brew upgrade dinghy unfs3
     $ dinghy up
 
 To update the Docker VM, run:
@@ -203,7 +203,7 @@ This branch may be less stable, so this isn't recommended in general.
 ## Built on
 
  - https://github.com/docker/machine
- - https://github.com/markusn/unfs3
+ - https://github.com/unfs3/unfs3
  - https://github.com/Homebrew/homebrew
  - http://www.thekelleys.org.uk/dnsmasq/doc.html
  - https://github.com/jwilder/nginx-proxy
