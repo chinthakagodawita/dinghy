@@ -153,6 +153,7 @@ class DinghyCLI < Thor
   option :help, type: :boolean, aliases: :h
   desc "nameserver", "get the DNS nameserver container's IP"
   def nameserver_ip
+    check_help!(:nameserver_ip))
     if machine.running?
       puts Dnsdock::CONTAINER_IP
     else
