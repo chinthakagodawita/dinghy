@@ -36,6 +36,7 @@ class Dnsdock
     unless resolver_configured?
       configure_resolver!
     end
+    fix_moby_iptables!
     route_add!
   end
 
@@ -85,6 +86,12 @@ class Dnsdock
       system!("creating route", "sudo", "route", "-n", "add", DOCKER_SUBNET, machine.vm_ip)
     end
     flush_dns_cache!
+  end
+
+  # Moby has changed how they accept IP forwarding.
+  # @see https://github.com/boot2docker/boot2docker/issues/1364
+  def fix_moby_iptables!
+    machine.ssh("sudo /usr/local/sbin/iptables -P FORWARD ACCEPT")
   end
 
   def route_remove!
