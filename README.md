@@ -1,3 +1,5 @@
+**Deprecated (17/04/21):** This fork of dinghy is no longer maintained, please check out [Docker Desktop](https://www.docker.com/products/docker-desktop) (recommended) or [the upstream project](https://github.com/codekitchen/dinghy) instead.
+
 # dinghy
 
 Docker on OS X with batteries included, aimed at making a more pleasant local development experience.
